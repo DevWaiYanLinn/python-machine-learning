@@ -43,11 +43,18 @@ def new_order():
     order_items = {}
 
     def create_order(name, quantity, price):
-        order_items[name] = {
-            "name": name,
-            "quantity": quantity,
-            "price": float(price) * int(quantity)
-        }
+        if name in order_items:
+            order_items[name] = {
+                "name": name,
+                "quantity": order_items[name]['quantity'] + quantity,
+                "price": price * (order_items[name]['quantity'] + quantity) 
+            }
+        else:
+            order_items[name] = {
+                "name": name,
+                "quantity": quantity,
+                "price": price * quantity
+            }
         return order_items
 
     def get_order():
@@ -77,10 +84,10 @@ def main():
             name, quantity = order.split(' x ')
             if name not in ITEM:
                 print(
-                    "I apologize, but the item you've requested is not currently available on our menu.")
+                    f"I apologize, but the item({name}) you've requested is not currently available on our menu.")
                 print('Is there something special you\'d like to try?')
                 continue
-            create_order(name, quantity, ITEM[name]['price'])
+            create_order(name, int(quantity), float(ITEM[name]['price']))
 
     sub_total, bill_table = create_bill(get_order())
     save_bill(get_order())
@@ -89,6 +96,7 @@ def main():
     need_bill = input('Do you need the bill now? : yes or no?. ')
 
     if need_bill == 'yes':
+        print('\nYour bill is ready.')
         print(bill_table)
 
     print('Thank for dinning with us.')
