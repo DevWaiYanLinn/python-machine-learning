@@ -2,12 +2,22 @@ import csv
 from prettytable import PrettyTable
 import uuid
 import os
+import sys
 
 
-def create_menu(ITEM):
+def check_order(items):
+    order_table = PrettyTable()
+    order_table.field_names = ['Name', 'Quantity']
+    for item in items.values():
+        order_table.add_row([item['name'], item['quantity']])
+
+    return order_table
+
+
+def create_menu(items):
     menu_table = PrettyTable()
     menu_table.field_names = ['Name', 'Price']
-    for item in ITEM.values():
+    for item in items.values():
         menu_table.add_row([item['name'], item['price']])
 
     return menu_table
@@ -21,7 +31,8 @@ def create_bill(orders):
         sub_total += item['price']
         bill_table.add_row([item['name'], item['quantity'], item['price']])
 
-    bill_table.add_row(['Subtotal', ' ',  f'{sub_total}$'])
+    bill_table.add_row(['Subtotal', ' ', f'{sub_total}$'])
+    bill_table.add_row(['Total', ' ', f'{sub_total}$'])
     return [sub_total, bill_table]
 
 
@@ -31,7 +42,7 @@ def save_bill(orders):
         os.makedirs(output_directory)
     unique_id = str(uuid.uuid4())
     csv_file_path = os.path.join(output_directory, f'{unique_id}.csv')
-    with open(csv_file_path, mode='w') as csv_bill:
+    with open(csv_file_path, mode='w', newline='') as csv_bill:
         write_bill = csv.DictWriter(
             csv_bill, fieldnames=['name', 'price', 'quantity'])
         write_bill.writeheader()
@@ -44,11 +55,8 @@ def new_order():
 
     def create_order(name, quantity, price):
         if name in order_items:
-            order_items[name] = {
-                "name": name,
-                "quantity": order_items[name]['quantity'] + quantity,
-                "price": price * (order_items[name]['quantity'] + quantity) 
-            }
+            order_items[name]['quantity'] = order_items[name]['quantity'] + quantity
+            order_items[name]['price'] = price * order_items[name]['quantity']
         else:
             order_items[name] = {
                 "name": name,
@@ -59,35 +67,40 @@ def new_order():
 
     def get_order():
         return order_items
+
     return [create_order, get_order]
 
 
 def main():
-    ITEM = {}
+    items = {}
     with open('menu.csv', mode='r') as csv_menu:
         read_menu = csv.DictReader(csv_menu)
         for item in read_menu:
-            ITEM[item['name']] = item
+            items[item['name']] = item
 
-    menu = create_menu(ITEM)
+    menu = create_menu(items)
 
-    print('Thank you for choosing SORA FOOD.')
+    print('Thank you for choosing MAGIC FOOD.')
     print('Here are the delicious dishes we offer:')
     print(menu)
-    [create_order, get_order] = new_order()
     print('Is there something special you\'d like to try?.')
+    create_order, get_order = new_order()
     while True:
         order = input()
         if order == 'finished':
             break
+        elif order == 'check order':
+            order_table = check_order(get_order())
+            print(order_table)
+            continue
         else:
             name, quantity = order.split(' x ')
-            if name not in ITEM:
+            if name not in items:
                 print(
                     f"I apologize, but the item({name}) you've requested is not currently available on our menu.")
                 print('Is there something special you\'d like to try?')
                 continue
-            create_order(name, int(quantity), float(ITEM[name]['price']))
+            create_order(name, int(quantity), float(items[name]['price']))
 
     sub_total, bill_table = create_bill(get_order())
     save_bill(get_order())
@@ -102,4 +115,16 @@ def main():
     print('Thank for dinning with us.')
 
 
-main()
+def documentation():
+    print('I would like you to read the documentation before the program is started.')
+    print('If you want to order,', 'type:\nPizza x 1\nTaco x 2 ')
+    print('If you check the order', 'type:\ncheck order')
+    print('After finished the order', 'type:\nfinished')
+    agree = input('Do you agree? yes or no. ')
+    if agree:
+        main()
+    else:
+        sys.exit(0)
+
+
+documentation()
