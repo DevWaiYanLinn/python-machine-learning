@@ -7,7 +7,6 @@ from matplotlib import pyplot as plt
 
 
 def visualize_sales(items):
-    # Create a bar chart
     item_names = list(items.keys())
     item_prices = [float(item['price']) for item in items.values()]
     plt.figure(figsize=(10, 6))
