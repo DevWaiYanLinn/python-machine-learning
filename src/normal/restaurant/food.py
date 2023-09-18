@@ -3,6 +3,28 @@ from prettytable import PrettyTable
 import uuid
 import os
 import sys
+from matplotlib import pyplot as plt
+
+
+def visualize_sales(items):
+    # Create a bar chart
+    item_names = list(items.keys())
+    item_prices = [float(item['price']) for item in items.values()]
+    plt.figure(figsize=(10, 6))
+    plt.bar(item_names, item_prices, color='skyblue')
+    plt.xlabel('Menu Item')
+    plt.ylabel('Sales Price ($)')
+
+    # Format y-axis tick labels as floats with two decimal places
+    plt.gca().yaxis.set_major_formatter(plt.FormatStrFormatter('%.2f'))
+
+    plt.title('Menu Item Sales')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+
+    # Show the chart
+    plt.show()
+
 
 
 def check_order(items):
@@ -29,11 +51,12 @@ def create_bill(orders):
     sub_total = 0
     for item in orders.values():
         sub_total += item['price']
-        bill_table.add_row([item['name'], item['quantity'], item['price']])
+        bill_table.add_row([item['name'], item['quantity'],
+                           "{:.2f}".format(item['price'])])
 
-    bill_table.add_row(['Subtotal', ' ', f'{sub_total}$'])
-    bill_table.add_row(['Total', ' ', f'{sub_total}$'])
-    return [sub_total, bill_table]
+    bill_table.add_row(['Subtotal', ' ', f'{"{:.2f}".format(sub_total)}$'])
+    bill_table.add_row(['Total', ' ', f'{"{:.2f}".format(sub_total)}$'])
+    return ["{:.2f}".format(sub_total), bill_table]
 
 
 def save_bill(orders):
@@ -65,10 +88,15 @@ def new_order():
             }
         return order_items
 
+    def remove_items(names):
+        for name in names:
+            if name in order_items:
+                del order_items[name]
+
     def get_order():
         return order_items
 
-    return [create_order, get_order]
+    return [create_order, get_order, remove_items]
 
 
 def main():
@@ -80,11 +108,15 @@ def main():
 
     menu = create_menu(items)
 
-    print('Thank you for choosing MAGIC FOOD.')
-    print('Here are the delicious dishes we offer:')
-    print(menu)
-    print('Is there something special you\'d like to try?.')
-    create_order, get_order = new_order()
+    CYAN = "\033[96m"
+    RESET = "\033[0m"
+
+    print(CYAN + 'Thank you for choosing MAGIC FOOD.' + RESET)
+    print(CYAN + 'Here are the delicious dishes we offer:' + RESET)
+    print(menu)  # Assuming "menu" contains your menu items
+    print(CYAN + 'Is there something special you\'d like to try?' + RESET)
+    visualize_sales(items)
+    create_order, get_order, remove_items = new_order()
     while True:
         order = input()
         if order == 'finished':
@@ -93,12 +125,19 @@ def main():
             order_table = check_order(get_order())
             print(order_table)
             continue
+        elif order == 'remove items':
+            print(
+                'Please type a list of items separated by commas. For example: Pizza, Taco')
+            names = [name for name in input().split(',')]
+            remove_items(names)
+            print(order_table)
+            continue
         else:
             name, quantity = order.split(' x ')
             if name not in items:
                 print(
-                    f"I apologize, but the item({name}) you've requested is not currently available on our menu.")
-                print('Is there something special you\'d like to try?')
+                    f"{CYAN}I apologize, but the item({name}) you've requested is not currently available on our menu.{RESET}")
+                print(CYAN + 'Is there something special you\'d like to try?' + RESET)
                 continue
             create_order(name, int(quantity), float(items[name]['price']))
 
@@ -106,22 +145,32 @@ def main():
     save_bill(get_order())
 
     print('Total is ', f'{sub_total}$')
-    need_bill = input('Do you need the bill now? : yes or no?. ')
+    need_bill = input(
+        CYAN + 'Do you need the bill now? : yes or no?. ' + RESET)
 
     if need_bill == 'yes':
-        print('\nYour bill is ready.')
+        print(CYAN + '\nYour bill is ready.' + RESET)
         print(bill_table)
 
-    print('Thank for dinning with us.')
+    print(CYAN + 'Thank for dinning with us.' + RESET)
 
 
 def documentation():
-    print('I would like you to read the documentation before the program is started.')
-    print('If you want to order,', 'type:\nPizza x 1\nTaco x 2 ')
-    print('If you check the order', 'type:\ncheck order')
-    print('After finished the order', 'type:\nfinished')
-    agree = input('Do you agree? yes or no. ')
-    if agree:
+    RED = "\033[91m"
+    GREEN = "\033[92m"
+    RESET = "\033[0m"
+
+    print(RED + 'Welcome to our ordering system!' + RESET)
+    print(RED + 'Before you start, please take a moment to read the instructions:' + RESET)
+    print(GREEN + '- To place an order, type the items and quantities like this:' + RESET)
+    print('  Example:')
+    print('  Pizza x 1')
+    print('  Taco x 2')
+    print(GREEN + '- To remove items from your order, type: "remove items"' + RESET)
+    print(GREEN + '- To check your current order, simply type: "check order"' + RESET)
+    print(GREEN + '- Once you\'ve finished ordering, type: "finished"' + RESET)
+    agree = input('Do you agree to these terms? Type "yes" or "no": ')
+    if agree == 'yes':
         main()
     else:
         sys.exit(0)
