@@ -11,9 +11,6 @@ def main():
     month_of_year = datetime.date.today().strftime('%Y-%m')
     file_path = f'{month_of_year}.csv'
 
-    if (not path.isfile(file_path)):
-        create_attendance_csv()
-
     def create_day_range():
         nonlocal day_range
         current_date = datetime.date.today()
@@ -75,7 +72,7 @@ def main():
             df = pd.concat([df, new_data], ignore_index=True)
             df.to_csv(file_path, index=False)
 
-            print('Attenance record is saved.Do you rollback?')
+            print('Attenance record is saved')
 
     def create_chart():
         nonlocal day_range
@@ -87,12 +84,16 @@ def main():
         plt.pie(data, labels=day_range, autopct='%1.1f%%')
         plt.axis('equal')
         plt.show()
+    
+    create_day_range()
+    if (not path.isfile(file_path)):
+        create_attendance_csv()
 
-    return [create_attendance, create_chart, create_day_range]
+    return [create_attendance, create_chart]
 
 
 if __name__ == '__main__':
-    create_attendance, create_chart, create_day_range = main()
+    create_attendance, create_chart = main()
     select_options = int(
         input('Please Choice \n1.For create chart \n2.For create attendance\n'))
 
@@ -101,4 +102,3 @@ if __name__ == '__main__':
     else:
         create_attendance()
 
-    create_day_range()
