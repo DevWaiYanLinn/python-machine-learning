@@ -3,13 +3,14 @@ import datetime
 import pandas as pd
 from os import path
 import re
-import matplotlib.pyplot as plt
 
 
 def main():
     day_range = []
     month_of_year = datetime.date.today().strftime('%Y-%m')
     file_path = f'{month_of_year}.csv'
+    colors = {'error': '\033[91m', "end": '\033[0m'}
+    day_of_month = datetime.date.today().strftime('%Y-%m-%d')
 
     def create_day_range():
         nonlocal day_range
@@ -23,71 +24,75 @@ def main():
 
     def create_fields_name():
         nonlocal day_range
-        return ['Student_ID', *day_range, 'Total', 'Absent']
+        return ['student_id', 'name', *day_range, 'total', 'absent']
 
     def create_attendance_csv():
-        nonlocal month_of_year
         fields_name = create_fields_name()
         df = pd.DataFrame(columns=fields_name)
         df.to_csv(f'{month_of_year}.csv', index=False)
 
-    def create_attendance():
-        nonlocal month_of_year, file_path
+    def get_student_id():
+        while True:
+            student_id = input(
+                "Enter student id : id must be maximum 10 character and integer\n").strip()
+            if not re.match(r"\d{1,10}", student_id):
+                print(f'{colors["error"]}id must be maximum 10 character and integer{colors["end"]}')
+            else:
+                return "AI-1-" + f"{student_id}".rjust(5, '0')
+
+    def get_student_attendance():
+        while True:
+            attendance = input('Enter Attendance: 0 or 1\n')
+            if not re.match(r"[0-1]", attendance):
+                print(f'{colors["error"]}Attendance must be "0" or "1"{colors["end"]}')
+            else:
+                return int(attendance)
+
+    def get_student_name():
+        while True:
+            name = input('Enter Student name\n')
+            if not re.match(r"[A-Z\s]", name):
+                print(f'{colors["error"]}Name must be only word character{colors["end"]}')
+            else:
+                return name
+
+    def save_attendance(student_id, student_name, student_attendance):
         df = pd.read_csv(file_path)
-
-        student_id = input(
-            "Enter student id : id must be maximum 10 character and integer ").strip()
-
-        if not re.match(r"\d{1,10}", student_id):
-            raise TypeError('id must be maximum 10 character and integer')
-
-        attendance = int(input('Enter Attendance: 0 or 1 '))
-
-        if not (attendance == 1 or attendance == 0):
-            raise TypeError('attendance must be "0" or "1"')
-
-        day_of_month = datetime.date.today().strftime('%Y-%m-%d')
-
-        format_id = int(student_id.rjust(10, '0'))
-
-        student_record = df["Student_ID"] == format_id
-
+        student_record = df["student_id"] == student_id
         if not df.loc[student_record].empty:
-            if df.loc[student_record, day_of_month].values[0] != attendance:
-                if attendance:
-                    df.loc[student_record, 'Total'] += 1
-                    df.loc[student_record, 'Absent'] -= 1
+            if df.loc[student_record, day_of_month].values[0] != student_attendance:
+                if student_attendance:
+                    df.loc[student_record, 'total'] += 1
+                    df.loc[student_record, 'absent'] -= 1
                 else:
-                    df.loc[student_record, 'Total'] -= 1
-                    df.loc[student_record, 'Absent'] += 1
-            df.loc[student_record, day_of_month] = attendance
-            df.to_csv(file_path, index=False)
+                    df.loc[student_record, 'total'] -= 1
+                    df.loc[student_record, 'absent'] += 1
+            df.loc[student_record, day_of_month] = student_attendance
         else:
-            absent = int(1 - attendance)
-            attendance = int(attendance)
+            absent = int(1 - student_attendance)
+            student_attendance = int(student_attendance)
             new_data = pd.DataFrame(
-                {"Student_ID": [format_id], day_of_month: [attendance],
-                 'Total': [attendance], 'Absent': [absent]})
+                {"student_id": [student_id], "name": [student_name], day_of_month: [student_attendance],
+                 'total': [student_attendance], 'absent': [absent]})
             df = pd.concat([df, new_data], ignore_index=True)
-            df.to_csv(file_path, index=False)
 
-            print('Attendance record is saved')
+        df.to_csv(file_path, index=False)
 
-    # def create_chart():
-    #     nonlocal day_range, file_path, month_of_year
-    #     df = pd.read_csv(file_path)
-    #     data = [int(df[x].apply(lambda y: isinstance(y, int) if y else 0).sum())
-    #             for x in day_range]
-    #     plt.pie(data, labels=day_range, autopct='%1.1f%%')
-    #     plt.axis('equal')
-    #     plt.show()
+        print('Attendance record is saved')
 
-    create_day_range()
+    def create_attendance():
+        student_id = get_student_id()
+        student_name = get_student_name()
+        student_attendance = get_student_attendance()
+        save_attendance(student_id, student_name, student_attendance)
 
-    if not path.isfile(file_path):
-        create_attendance_csv()
+    def start():
+        create_day_range()
+        if not path.isfile(file_path):
+            create_attendance_csv()
+        create_attendance()
 
-    create_attendance()
+    start()
 
 
 if __name__ == '__main__':
