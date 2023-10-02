@@ -9,7 +9,7 @@ def main():
     day_range = []
     month_of_year = datetime.date.today().strftime('%Y-%m')
     file_path = f'{month_of_year}.csv'
-    colors = {'error': '\033[91m', "end": '\033[0m'}
+    colors = {'error': '\033[91m', "end": '\033[0m', 'warning': '\033[93m'}
     day_of_month = datetime.date.today().strftime('%Y-%m-%d')
 
     def create_day_range():
@@ -23,7 +23,6 @@ def main():
         day_range = np.datetime_as_string(date_range, unit='D')
 
     def create_fields_name():
-        nonlocal day_range
         return ['student_id', 'name', *day_range, 'total', 'absent']
 
     def create_attendance_csv():
@@ -33,8 +32,8 @@ def main():
 
     def get_student_id():
         while True:
-            student_id = input(
-                "Enter student id : id must be maximum 10 character and integer\n").strip()
+            print("Enter student id : id must be maximum 10 character and integer")
+            student_id = input().strip()
             if not re.match(r"\d{1,10}", student_id):
                 print(f'{colors["error"]}id must be maximum 10 character and integer{colors["end"]}')
             else:
@@ -42,7 +41,10 @@ def main():
 
     def get_student_attendance():
         while True:
-            attendance = input('Enter Attendance: 0 or 1\n')
+            print('Enter Attendance')
+            print('1.yes')
+            print('0.no')
+            attendance = input()
             if not re.match(r"[0-1]", attendance):
                 print(f'{colors["error"]}Attendance must be "0" or "1"{colors["end"]}')
             else:
@@ -50,41 +52,50 @@ def main():
 
     def get_student_name():
         while True:
-            name = input('Enter Student name\n')
-            if not re.match(r"[A-Z\s]", name):
+            print('Enter Student name')
+            name = input()
+            if not re.match(r"[A-Za-z\s]", name):
                 print(f'{colors["error"]}Name must be only word character{colors["end"]}')
             else:
                 return name
 
-    def save_attendance(student_id, student_name, student_attendance):
+    def create_attendance():
+        student_id = get_student_id()
+        attendance_date = day_of_month
         df = pd.read_csv(file_path)
-        student_record = df["student_id"] == student_id
-        if not df.loc[student_record].empty:
-            if df.loc[student_record, day_of_month].values[0] != student_attendance:
+        attended_record = df["student_id"] == student_id
+        if not df.loc[attended_record, attendance_date].empty:
+            print(
+                f'{colors["warning"]}The attendance for student id({student_id}) is already recorded for today.')
+            print(f'Do you want to update?{colors["end"]}')
+            print('1.yes')
+            print('0.no')
+            is_update = input()
+            if is_update == '0':
+                return print('Finished')
+
+        if not df.loc[attended_record].empty:
+            student_attendance = get_student_attendance()
+            if df.loc[attended_record, attendance_date].values[0] != student_attendance:
                 if student_attendance:
-                    df.loc[student_record, 'total'] += 1
-                    df.loc[student_record, 'absent'] -= 1
+                    df.loc[attended_record, 'total'] += 1
+                    df.loc[attended_record, 'absent'] -= 1
                 else:
-                    df.loc[student_record, 'total'] -= 1
-                    df.loc[student_record, 'absent'] += 1
-            df.loc[student_record, day_of_month] = student_attendance
+                    df.loc[attended_record, 'total'] -= 1
+                    df.loc[attended_record, 'absent'] += 1
+            df.loc[attended_record, attendance_date] = student_attendance
         else:
+            student_name = get_student_name()
+            student_attendance = get_student_attendance()
             absent = int(1 - student_attendance)
             student_attendance = int(student_attendance)
             new_data = pd.DataFrame(
-                {"student_id": [student_id], "name": [student_name], day_of_month: [student_attendance],
+                {"student_id": [student_id], "name": [student_name], attendance_date: [student_attendance],
                  'total': [student_attendance], 'absent': [absent]})
             df = pd.concat([df, new_data], ignore_index=True)
 
         df.to_csv(file_path, index=False)
-
         print('Attendance record is saved')
-
-    def create_attendance():
-        student_id = get_student_id()
-        student_name = get_student_name()
-        student_attendance = get_student_attendance()
-        save_attendance(student_id, student_name, student_attendance)
 
     def start():
         create_day_range()
